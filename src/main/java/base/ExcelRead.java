@@ -22,22 +22,29 @@ public class ExcelRead {
 
 	public static void main(String[] args) throws IOException {
 		ExcelRead excelRead = new ExcelRead();
-		excelRead.readExcel();
+		String fileName = "Book1.xlsx";
+		excelRead.readExcel(fileName);
+		
 	}
 
-	public void readExcel() throws IOException {
+	public void readExcel(String fileName) throws IOException {
 		RequestResponse run = new RequestResponse();
-		fis = new FileInputStream("Book1.xlsx");
+		fis = new FileInputStream(fileName);
 		workbook = new XSSFWorkbook(fis);
+		sheet = workbook.getSheet("ResponseParameter");
+		String url = getValue(sheet, 1,2);
 		sheet = workbook.getSheet("ResquestResponse");
+		
 		int lastRowNum = sheet.getLastRowNum();
 		for (int i = 1; i < lastRowNum + 1; i++) {
 			String request = getValue(sheet, i, 0);
-			String actualResponse = run.requestHit(request.trim());
+			/* Calling request hit */
+			String actualResponse = run.requestHit(request.trim(), url);
+			/* Fetching value of exceptedResponse column from excel */
 			String expectedResponse = getValue(sheet, i, 1);
+			/* Matching the jsonTree with all the parameter and setting value as null */
 			boolean value = run.responseProcessing(workbook, actualResponse, expectedResponse);
 			setValue(sheet, i, 2, actualResponse);
-//			boolean value = ExcelRead.resultMatching(expectedResponse, actaulResponse);
 			String pass;
 			if (value) {
 				pass = "Pass";
@@ -53,8 +60,13 @@ public class ExcelRead {
 
 	public String getValue(XSSFSheet sheet, int row, int cell) {
 		XSSFRow row2 = sheet.getRow(row);
-		XSSFCell cell2 = row2.getCell(cell);
-		return cell2.getStringCellValue();
+		if (row2 != null) {
+			XSSFCell cell2 = row2.getCell(cell);
+			if (cell2 != null) {
+				return cell2.getStringCellValue();
+			}
+		}
+		return "";
 	}
 
 	public void setValue(XSSFSheet sheet, int row, int cell, String value) {
@@ -69,5 +81,6 @@ public class ExcelRead {
 		return value;
 	}
 
+	
 	
 }
