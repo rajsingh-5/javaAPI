@@ -2,16 +2,13 @@ package base;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class TestingPurpose {
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		String str = ""; // or str = null;
-		if (str != null && !str.isEmpty()) {
-			System.out.println("null");
-		} else {
-			System.out.println("not");
-		} 
+
 	}
 
 }
