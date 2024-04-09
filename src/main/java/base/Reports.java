@@ -2,9 +2,8 @@ package base;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.reporter.ExtentHtmlReporter;
+import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 
-@SuppressWarnings("deprecation")
 public class Reports {
 
 
@@ -12,7 +11,7 @@ public class Reports {
 		Reports.reportPrepare("rest.html");
 	}
 	public static void reportPrepare(String filePath) {
-	    ExtentHtmlReporter htmlReporter = new ExtentHtmlReporter(filePath);
+	    ExtentSparkReporter htmlReporter = new ExtentSparkReporter(filePath);
         ExtentReports extent = new ExtentReports();
         extent.attachReporter(htmlReporter);
         ExtentTest test = extent.createTest("MyTest", "Sample description");
