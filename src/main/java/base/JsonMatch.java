@@ -11,7 +11,6 @@ public class JsonMatch {
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode node1 = mapper.readTree(json1);
 		JsonNode node2 = mapper.readTree(json2);
-
 		boolean matches = node1.equals(node2);
 		return matches;
 	}

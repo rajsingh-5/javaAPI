@@ -17,6 +17,7 @@ import io.restassured.specification.RequestSpecification;
 public class RequestResponse {
 	ExcelRead excelRead = new ExcelRead();
 	Faker faker = new Faker();
+
 	public String requestHit(String body, String url) {
 		RequestSpecification resquestSpec = RestAssured.given();
 		Response response = resquestSpec.contentType(ContentType.JSON).baseUri(url).body(body).post();
@@ -26,18 +27,21 @@ public class RequestResponse {
 
 	public boolean responseProcessing(XSSFWorkbook workbook, String actualResponse, String expectedResponse)
 			throws JsonMappingException, JsonProcessingException {
-		XSSFSheet sheet = workbook.getSheet("ResponseParameter");
-		int lastRowNum = sheet.getLastRowNum();
+		XSSFSheet responseSheet = workbook.getSheet("ResponseParameter");
+		XSSFSheet requestSheet = workbook.getSheet("RequestResponse");
+		int lastRowNumResponse = responseSheet.getLastRowNum();
+		int lastRowNumRequest = requestSheet.getLastRowNum();
 		String newExceptedResponse = "";
 		String newActualResponse = "";
 		DocumentContext aResponse = JsonPath.parse(actualResponse);
 		DocumentContext eResponse = JsonPath.parse(expectedResponse);
-		for (int i = 1; i < lastRowNum + 1; i++) {
-			String jsonPath = excelRead.getValue(sheet, i, 0);
+
+		for (int i = 1; i < lastRowNumResponse + 1; i++) {
+			String jsonPath = excelRead.getValue(responseSheet, i, 0);
 			if (jsonPath != null && !jsonPath.isEmpty()) {
-				String dataType = excelRead.getValue(sheet, i, 1);
-				newActualResponse = jsonValueChange(aResponse, jsonPath);
-				newExceptedResponse = jsonValueChange(eResponse, jsonPath, dataType);
+				String dataType = excelRead.getValue(responseSheet, i, 1);
+				newActualResponse = jsonValueActualChange(aResponse, jsonPath);
+				newExceptedResponse = jsonValueChangeExpectedResponse(eResponse, jsonPath, dataType);
 			}
 		}
 		if (newExceptedResponse != null && !newExceptedResponse.isEmpty()) {
@@ -49,32 +53,34 @@ public class RequestResponse {
 		}
 	}
 
-	public String jsonValueChange(DocumentContext response, String path, String dataType) {
+	public String jsonValueChangeExpectedResponse(DocumentContext response, String path, String dataType) {
+		boolean matchValue = false;
+		if (dataType.toLowerCase().contains("reg-")) {
+		dataType = dataType.replace("reg-", "");
 		String pathValue = response.read(path);
-		boolean matchValue = pathValue.matches(dataType);
-		if(matchValue){
-//			ExcelRead.test.pass("Value on path " + path + " is same as regex " + matchValue);
-			response.set(path, "");
-			return response.jsonString();
+		matchValue = pathValue.matches(dataType);
 		}
 		else {
+			String pathValue = response.read(path);
+			matchValue = pathValue.matches(dataType);
+		}
+		if (matchValue) {
+			response.set(path, "");
+			return response.jsonString();
+		} else {
 			ExcelRead.test.fail("Value of path <b>" + path + "</b> is not same as regex ");
-//			response.set(path, "");
 			return response.jsonString();
 		}
 	}
 
-	public String jsonValueChange(DocumentContext response, String path) {
-//		String pathValue = response.read(path);
-//		boolean matchValue = pathValue.matches(dataType);
-//		System.out.println("Value on path "+path+" is same as "+matchValue);
+	public String jsonValueActualChange(DocumentContext response, String path) {
 		response.set(path, "");
 		return response.jsonString();
 	}
 
 	public String requestBody(XSSFWorkbook workbook, String requestBody) {
 		XSSFSheet sheet = workbook.getSheet("RequestParameter");
-		String newRequestBody=null;
+		String newRequestBody = null;
 		DocumentContext request = JsonPath.parse(requestBody);
 		int lastRowNum = sheet.getLastRowNum();
 		for (int i = 1; i < lastRowNum + 1; i++) {
@@ -90,10 +96,18 @@ public class RequestResponse {
 			return requestBody;
 		}
 	}
-	
+
 	public String jsonValueRequest(DocumentContext request, String path, String dataType) {
-		String value = faker.regexify(dataType);
-		request.set(path, value);
-		return request.jsonString();
+		String value;
+		if (dataType.toLowerCase().contains("reg-")) {
+			dataType = dataType.replace("reg-", "");
+			value = faker.regexify(dataType);
+			request.set(path, value);
+			return request.jsonString();
+		} else {
+			value = dataType;
+			request.set(path, value);
+			return request.jsonString();
+		}
 	}
 }

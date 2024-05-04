@@ -5,12 +5,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import base.JsonMatch;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.markuputils.MarkupHelper;
@@ -25,6 +27,11 @@ public class ExcelRead {
 	public int startIndex = 1;
 	static ExtentTest test;
 	static ExtentReports extent;
+	boolean requestSame;
+	boolean value;
+	String newRequestBody;
+	String actualResponse;
+	String expectedResponse;
 
 	public static void main(String[] args) throws IOException {
 		ExcelRead excelRead = new ExcelRead();
@@ -47,19 +54,30 @@ public class ExcelRead {
 		String url = getValue(sheet, 1, 2);
 		/* Changing sheet to RequestResponse to get request and response body */
 		sheet = workbook.getSheet("RequestResponse");
-
 		int lastRowNum = sheet.getLastRowNum();
 		for (int i = 1; i < lastRowNum + 1; i++) {
 			test = extent.createTest("Test Data " + i);
 			String requestBody = getValue(sheet, i, 0);
-			String newRequestBody = run.requestBody(workbook, requestBody);
-			/* Calling request hit */
-			String actualResponse = run.requestHit(newRequestBody.trim(), url);
-			/* Fetching value of exceptedResponse column from excel */
-			String expectedResponse = getValue(sheet, i, 1);
-			/* Matching the jsonTree with all the parameter and setting value as null */
-			boolean value = run.responseProcessing(workbook, actualResponse, expectedResponse);
-			boolean requestSame = resultMatching(newRequestBody, requestBody);
+			String status = getValue(sheet, i, 6);
+			if (status.toLowerCase().equals("postive") || status.toLowerCase().contains("po")) {
+				newRequestBody = run.requestBody(workbook, requestBody);
+				/* Calling request hit */
+				actualResponse = run.requestHit(newRequestBody.trim(), url);
+				/* Fetching value of exceptedResponse column from excel */
+				expectedResponse = getValue(sheet, i, 1);
+				/* Matching the jsonTree with all the parameter and setting value as null */
+				value = run.responseProcessing(workbook, actualResponse, expectedResponse);
+				requestSame = resultMatching(newRequestBody, requestBody);
+			} else if (status.toLowerCase().equals("negative") || status.toLowerCase().contains("ne")) {
+				newRequestBody = requestBody;
+				/* Calling request hit */
+				actualResponse = run.requestHit(newRequestBody.trim(), url);
+				/* Fetching value of exceptedResponse column from excel */
+				expectedResponse = getValue(sheet, i, 1);
+				/* Matching the jsonTree with all the parameter and setting value as null */
+				value = resultMatching(actualResponse, expectedResponse);
+				requestSame = resultMatching(newRequestBody, requestBody);
+			}
 			if (!requestSame) {
 				test.pass(MarkupHelper.createCodeBlock(" Old Request \n" + requestBody,
 						" New request \n " + newRequestBody));
@@ -70,13 +88,12 @@ public class ExcelRead {
 			if (value) {
 				test.pass(MarkupHelper.createCodeBlock("Expected_Response \n" + expectedResponse,
 						" Actual_Response \n" + actualResponse));
-//				test.
 				pass = "Pass";
 			} else {
 				test.fail(" Expected_Response " + expectedResponse + "\n Actual_Response " + actualResponse);
 				pass = "Fail";
 			}
-			setValue(sheet, i, 4, pass);
+			setValue(sheet, i, 7, pass);
 		}
 		FileOutputStream fos = new FileOutputStream("Book1.xlsx");
 		workbook.write(fos);
